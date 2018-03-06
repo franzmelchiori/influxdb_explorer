@@ -44,3 +44,4 @@ def load_json(file_name):
 
 if __name__ == '__main__':
     load_json('bossard_influxdb_testcase_map.json')
+    bla

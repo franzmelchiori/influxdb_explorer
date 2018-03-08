@@ -143,6 +143,6 @@ def get_influxdb_data(ip, database, measure, minutes, port='8086',
 
 
 if __name__ == '__main__':
-    # print(CustomerData('bossard'))
-    # print(CustomerInfluxDBData('bossard'))
-    get_influxdb_data('10.62.5.117', 'bossard', 'alyvix', 1)
+    # print(CustomerData('<customer>'))
+    # print(CustomerInfluxDBData('<customer>'))
+    get_influxdb_data('<ip>', '<customer>', 'alyvix', 1)

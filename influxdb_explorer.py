@@ -389,4 +389,4 @@ if __name__ == '__main__':
     #                            measure_unit='<measure_unit>',
     #                            sanity_period=<sanity_period>)
 
-    # check_customer_influxdb_checks('bossard', 2)
+    # check_customer_influxdb_checks('<customer_name>', 2)

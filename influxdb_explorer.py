@@ -85,20 +85,54 @@ class CustomerInfluxDBData(CustomerData):
 class CustomerInfluxDBCheck(CustomerInfluxDBData):
     def __init__(self, customer_name, json_path=''):
         CustomerInfluxDBData.__init__(self, customer_name, json_path)
-        check_feature_availability(
-            ip=self.data_source_ip_port.split(':')[0],
-            port=self.data_source_ip_port.split(':')[1],
-            database=self.databases[0]['database'],
-            measure=self.databases[0]['measurements'][0]['measurement'],
-            host=self.databases[0]['measurements'][0]['hosts'][0]['host'],
-            testcase=self.databases[0]['measurements'][0]['hosts'][0]['tests'][0]['test_name'],
-            transaction=self.databases[0]['measurements'][0]['hosts'][0]['tests'][0]['transactions'][0]['transaction_name'],
-            feature_name=self.databases[0]['measurements'][0]['hosts'][0]['tests'][0]['transactions'][0]['checks'][0]['feature_name'],
-            measure_unit=self.databases[0]['measurements'][0]['hosts'][0]['tests'][0]['transactions'][0]['checks'][0]['measure_unit'],
-            sanity_period=self.databases[0]['measurements'][0]['hosts'][0]['tests'][0]['transactions'][0]['checks'][0]['sanity_period'])
+        self.data_source_ip = self.data_source_ip_port.split(':')[0]
+        self.data_source_port = self.data_source_ip_port.split(':')[1]
+        self.check_sequence = [['check_name', [
+            'database', 'measurement', 'host', 'test_name',
+            'transaction_name']]]
+        self.get_check_sequence()
+        self.run_check_sequence()
 
     def __repr__(self):
-        return 'bla'
+        print_message = 'Check tree:\n'
+        for check in self.check_sequence:
+            print_message += '{0}\n'.format(check)
+        return print_message
+
+    def get_check_sequence(self):
+        for database in self.databases:
+            database_name = database['database']
+            for measurement in database['measurements']:
+                measurement_name = measurement['measurement']
+                for host in measurement['hosts']:
+                    host_name = host['host']
+                    for test in host['tests']:
+                        test_name = test['test_name']
+                        for transaction in test['transactions']:
+                            transaction_name = transaction['transaction_name']
+                            for check in transaction['checks']:
+                                check_name = check['check_name']
+                                check_feature = [
+                                    self.data_source_ip,
+                                    self.data_source_port,
+                                    database_name,
+                                    measurement_name,
+                                    host_name,
+                                    test_name,
+                                    transaction_name]
+                                if check_name == 'check_feature_availability':
+                                    check_feature.append(check['feature_name'])
+                                    check_feature.append(check['measure_unit'])
+                                    check_feature.append(check['sanity_period'])
+                                self.check_sequence.append([check_name,
+                                                            check_feature])
+
+    def run_check_sequence(self):
+        for check in self.check_sequence:
+            check_name = check[0]
+            check_args = check[1]
+            if check_name == 'check_feature_availability':
+                check_feature_availability(*check_args)
 
 
 class DataNotFound(Exception):
@@ -240,6 +274,7 @@ def check_availability_sequence(availability_sequence, availability_mode):
 if __name__ == '__main__':
     # print(CustomerData('customer'))
     # print(CustomerInfluxDBData('customer'))
+    # print(CustomerInfluxDBCheck('customer'))
     CustomerInfluxDBCheck('customer')
 
     # get_influxdb_data(ip='<ip>',

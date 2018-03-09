@@ -25,6 +25,12 @@ import urllib
 import urllib2
 
 
+error_level = {'OK': 0,
+               'WARNING': 1,
+               'CRITICAL': 2,
+               'UNKNOWN': 3}
+
+
 class CustomerData:
     def __init__(self, customer_name, json_path=''):
         self.customer_name = customer_name
@@ -43,7 +49,8 @@ class CustomerData:
 
     def load_check_map_json(self):
         if not self.json_path:
-            self.json_path = '{0}_check_map.json'.format(self.customer_name)
+            self.json_path = 'customer_check_map.json'
+            # self.json_path = '{0}_check_map.json'.format(self.customer_name)
         check_map = load_json(self.json_path)
         for customer_data in check_map['customers']:
             if customer_data['customer_name'] == self.customer_name:
@@ -83,20 +90,35 @@ class CustomerInfluxDBData(CustomerData):
 
 
 class CustomerInfluxDBCheck(CustomerInfluxDBData):
-    def __init__(self, customer_name, json_path=''):
+    def __init__(self, customer_name, json_path='', verbose_level=1):
         CustomerInfluxDBData.__init__(self, customer_name, json_path)
+        self.verbose_level = verbose_level
         self.data_source_ip = self.data_source_ip_port.split(':')[0]
         self.data_source_port = self.data_source_ip_port.split(':')[1]
-        self.check_sequence = [['check_name', [
-            'database', 'measurement', 'host', 'test_name',
-            'transaction_name']]]
+        self.check_sequence = []
         self.get_check_sequence()
         self.run_check_sequence()
+        self.check_result = error_level['UNKNOWN']
+        self.analyze_check_results()
 
     def __repr__(self):
-        print_message = 'Check tree:\n'
-        for check in self.check_sequence:
-            print_message += '{0}\n'.format(check)
+        print_message = ''
+        if self.verbose_level >= 1:
+            print_message += "The [ {0} ] tests are ".format(
+                self.customer_name)
+            print_message += "[ {0} ].\n".format(
+                get_error_label(self.check_result))
+        if self.verbose_level >= 2:
+            print_message += '\n'
+            print_message += 'Check results:\n'
+            for check in self.check_sequence:
+                error_label = get_error_label(check[2])
+                check_name = check[0]
+                print_message += '[ {0} '.format(error_label)
+                print_message += '| {0} '.format(check_name)
+                for feature in check[1]:
+                    print_message += '| {0} '.format(feature)
+                print_message += ']\n'
         return print_message
 
     def get_check_sequence(self):
@@ -124,15 +146,69 @@ class CustomerInfluxDBCheck(CustomerInfluxDBData):
                                     check_feature.append(check['feature_name'])
                                     check_feature.append(check['measure_unit'])
                                     check_feature.append(check['sanity_period'])
+                                check_result = None
                                 self.check_sequence.append([check_name,
-                                                            check_feature])
+                                                            check_feature,
+                                                            check_result])
+        return self.check_sequence
 
     def run_check_sequence(self):
         for check in self.check_sequence:
             check_name = check[0]
             check_args = check[1]
             if check_name == 'check_feature_availability':
-                check_feature_availability(*check_args)
+                check[2] = check_feature_availability(*check_args)
+        return self.check_sequence
+
+    def analyze_check_results(self):
+        max_check_result = max([check[2] for check in self.check_sequence])
+        min_check_result = min([check[2] for check in self.check_sequence])
+        if max_check_result == error_level['UNKNOWN']:
+            self.check_result = error_level['UNKNOWN']
+        elif max_check_result == error_level['CRITICAL']:
+            self.check_result = error_level['CRITICAL']
+        elif max_check_result == error_level['OK']:
+            if min_check_result == error_level['OK']:
+                self.check_result = error_level['OK']
+        else:
+            self.check_result = error_level['UNKNOWN']
+
+    def exit_check_result(self):
+        exit(self.check_result)
+        return True
+
+
+class CustomersInfluxDBChecks(CustomerInfluxDBCheck):
+    def __init__(self, json_path='', verbose_level=1):
+        self.json_path = json_path
+        self.verbose_level = verbose_level
+        self.customer_names = []
+        self.load_customer_names()
+        self.customers_checks = []
+        self.run_customers_checks()
+
+    def __repr__(self):
+        print_message = ''
+        for customer_checks in self.customers_checks:
+            print(customer_checks)
+        return print_message
+
+    def load_customer_names(self):
+        if not self.json_path:
+            self.json_path = 'customer_check_map.json'
+        check_map = load_json(self.json_path)
+        for customer_data in check_map['customers']:
+            self.customer_names.append(customer_data['customer_name'])
+        if not self.customer_names:
+            raise DataNotFound(data_name='customers',
+                               source_name='json file')
+        return True
+
+    def run_customers_checks(self):
+        for customer in self.customer_names:
+            cc = CustomerInfluxDBCheck(customer_name=customer,
+                                       verbose_level=self.verbose_level)
+            self.customers_checks.append(cc)
 
 
 class DataNotFound(Exception):
@@ -154,11 +230,13 @@ def load_json(file_path):
         json_file = open(file_path)
     except IOError:
         print('error | json file opening issue')
+        exit(error_level['UNKNOWN'])
         return False
     try:
         json_object = json.load(json_file)
     except ValueError:
         print('error | json file loading issue')
+        exit(error_level['UNKNOWN'])
         return False
     return json_object
 
@@ -238,8 +316,8 @@ def check_feature_availability(ip, port, database, measure, host, testcase,
             'results'][0]['series'][0]['columns']
         # print(influxdb_response_features)
     else:
-        print('no results')
-        return False
+        # print('no results')
+        return error_level['UNKNOWN']
     if feature_name in influxdb_response_features:
         timestamp_index = influxdb_response_features.index('time')
         feature_index = influxdb_response_features.index(feature_name)
@@ -255,11 +333,11 @@ def check_feature_availability(ip, port, database, measure, host, testcase,
         # print(availability_sequence)
         check = check_availability_sequence(check_sequence,
                                             'at_least_one_ok')
-        print(check)
+        # print(check)
         return check
     else:
-        print('no feature')
-        return False
+        # print('no feature')
+        return error_level['UNKNOWN']
 
 
 def check_availability_sequence(availability_sequence, availability_mode):
@@ -267,15 +345,34 @@ def check_availability_sequence(availability_sequence, availability_mode):
         # print(availability_sequence)
         for (measure_check, timestamp) in availability_sequence:
             if measure_check == 1:
-                return 1
-        return 0
+                return error_level['OK']
+        return error_level['CRITICAL']
+
+
+def get_error_label(error_code):
+    error_level_map = error_level.items()
+    for (error_label_map, error_code_map) in error_level_map:
+        if error_code == error_code_map:
+            error_label = error_label_map
+            return error_label
+
+
+def check_customer_influxdb_checks(customer, verbose=1):
+    cc = CustomerInfluxDBCheck(customer_name=customer,
+                               verbose_level=verbose)
+    print(cc)
+    cc.exit_check_result()
+
+
+def check_customers_influxdb_checks():
+    pass
 
 
 if __name__ == '__main__':
-    # print(CustomerData('customer'))
-    # print(CustomerInfluxDBData('customer'))
-    # print(CustomerInfluxDBCheck('customer'))
-    CustomerInfluxDBCheck('customer')
+    # print(CustomerData('<customer_name>'))
+    # print(CustomerInfluxDBData('<customer_name>'))
+    # print(CustomerInfluxDBCheck('<customer_name>'))
+    print(CustomersInfluxDBChecks(verbose_level=2))
 
     # get_influxdb_data(ip='<ip>',
     #                   database='<customer_name>',
@@ -291,3 +388,5 @@ if __name__ == '__main__':
     #                            feature_name='<feature_name>',
     #                            measure_unit='<measure_unit>',
     #                            sanity_period=<sanity_period>)
+
+    # check_customer_influxdb_checks('bossard', 2)

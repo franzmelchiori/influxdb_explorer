@@ -19,7 +19,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+import sys
 import os
+import argparse
 import json
 import urllib
 import urllib2
@@ -364,29 +366,45 @@ def check_customer_influxdb_checks(customer, verbose=1):
     cc.exit_check_result()
 
 
-def check_customers_influxdb_checks():
-    pass
+def check_customers_influxdb_checks(verbose=1):
+    csc = CustomersInfluxDBChecks(verbose_level=verbose)
+    print(csc)
 
 
 if __name__ == '__main__':
-    # print(CustomerData('<customer_name>'))
-    # print(CustomerInfluxDBData('<customer_name>'))
-    # print(CustomerInfluxDBCheck('<customer_name>'))
-    print(CustomersInfluxDBChecks(verbose_level=2))
+    cli_args = sys.argv[1:]
+    if cli_args:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('-c', '--customer_name',
+                            help='select a customer from where checking '
+                                 'influxdb data')
+        parser.add_argument('-v', '--verbose_level',
+                            help='verbose the check output')
+        args = parser.parse_args()
+        customer_name = args.customer_name
+        verbose_level = int(args.verbose_level) if args.verbose_level else 1
+        if customer_name:
+            check_customer_influxdb_checks(customer_name, verbose_level)
+    else:
+        # print(CustomerData('<customer_name>'))
+        # print(CustomerInfluxDBData('<customer_name>'))
+        # print(CustomerInfluxDBCheck('<customer_name>'))
+        # print(CustomersInfluxDBChecks(verbose_level=2))
 
-    # get_influxdb_data(ip='<ip>',
-    #                   database='<customer_name>',
-    #                   measure='<measurement>',
-    #                   seconds_from_now=<sanity_seconds>)
-    # check_feature_availability(ip='<ip>',
-    #                            port='<port>',
-    #                            database='<customer_name>',
-    #                            measure='<measurement>',
-    #                            host='<host>',
-    #                            testcase='<test_name>',
-    #                            transaction='<transaction_name>',
-    #                            feature_name='<feature_name>',
-    #                            measure_unit='<measure_unit>',
-    #                            sanity_period=<sanity_period>)
+        # get_influxdb_data(ip='<ip>',
+        #                   database='<customer_name>',
+        #                   measure='<measurement>',
+        #                   seconds_from_now=<sanity_seconds>)
+        # check_feature_availability(ip='<ip>',
+        #                            port='<port>',
+        #                            database='<customer_name>',
+        #                            measure='<measurement>',
+        #                            host='<host>',
+        #                            testcase='<test_name>',
+        #                            transaction='<transaction_name>',
+        #                            feature_name='<feature_name>',
+        #                            measure_unit='<measure_unit>',
+        #                            sanity_period=<sanity_period>)
 
-    # check_customer_influxdb_checks('<customer_name>', 2)
+        # check_customer_influxdb_checks('<customer_name>')
+        check_customers_influxdb_checks()

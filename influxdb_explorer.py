@@ -276,6 +276,7 @@ def get_influxdb_data(ip, database, measure, seconds_from_now, port='8086',
     influxdb_query_url = urllib.urlencode({'q': influxdb_query,
                                            'db': database})
     influxdb_request = '{0}?{1}'.format(influxdb_base_url, influxdb_query_url)
+    # print(influxdb_request)
     influxdb_response = json.load(urllib2.urlopen(influxdb_request))
     # print(influxdb_response)
     # print_influxdb_data(influxdb_response)
@@ -284,10 +285,12 @@ def get_influxdb_data(ip, database, measure, seconds_from_now, port='8086',
 
 def print_influxdb_data(influxdb_data):
     if 'series' in influxdb_data['results'][0].keys():
+        # if 'values' in influxdb_data['results'][0]['series'][0].keys():
         print(influxdb_data['results'][0]['series'][0]['columns'])
         values = influxdb_data['results'][0]['series'][0]['values']
         for value in values:
-            print(value)
+            if value:
+                print(value)
         return True
     else:
         print('no results')
@@ -359,8 +362,9 @@ def get_error_label(error_code):
             return error_label
 
 
-def check_customer_influxdb_checks(customer, verbose=1):
+def check_customer_influxdb_checks(customer, json_path='', verbose=1):
     cc = CustomerInfluxDBCheck(customer_name=customer,
+                               json_path=json_path,
                                verbose_level=verbose)
     print(cc)
     cc.exit_check_result()
@@ -375,6 +379,8 @@ if __name__ == '__main__':
     cli_args = sys.argv[1:]
     if cli_args:
         parser = argparse.ArgumentParser()
+        parser.add_argument('-p', '--json_path',
+                            help='set the json path of the customer check map')
         parser.add_argument('-c', '--customer_name',
                             help='select a customer from where checking '
                                  'influxdb data')
@@ -382,9 +388,12 @@ if __name__ == '__main__':
                             help='verbose the check output')
         args = parser.parse_args()
         customer_name = args.customer_name
+        json_path = args.json_path if args.json_path else ''
         verbose_level = int(args.verbose_level) if args.verbose_level else 1
         if customer_name:
-            check_customer_influxdb_checks(customer_name, verbose_level)
+            check_customer_influxdb_checks(customer_name,
+                                           json_path,
+                                           verbose_level)
     else:
         # print(CustomerData('<customer_name>'))
         # print(CustomerInfluxDBData('<customer_name>'))

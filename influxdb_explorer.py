@@ -105,19 +105,16 @@ class CustomerInfluxDBCheck(CustomerInfluxDBData):
 
     def __repr__(self):
         print_message = ''
-        if self.verbose_level == 1:
-            print_message += "The [ {0} ] tests are ".format(
-                self.customer_name)
-            print_message += "[ {0} ].\n".format(
-                get_error_label(self.check_result))
-        if self.verbose_level == 2:
+        if self.verbose_level in {1, 2}:
             error_label = get_error_label(self.check_result)
             database_name = self.check_sequence[0][1][2]
             print_message += "{0}: {1} ".format(error_label, database_name)
             if error_label == 'OK':
-                print_message += "checks are healthy. Enjoy the hindu calm. | "
+                print_message += "checks are healthy. Enjoy the hindu calm."
             else:
-                print_message += "checks have some troubles. Do something. | "
+                print_message += "checks have some troubles. Do something."
+        if self.verbose_level == 2:
+            print_message += " | "
             for check in self.check_sequence:
                 host_name = check[1][4]
                 test_name = check[1][5]

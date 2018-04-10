@@ -118,7 +118,7 @@ class CustomerInfluxDBCheck(CustomerInfluxDBData):
                     check_detail_key)]
 
         print_message = ''
-        if self.verbose_level in {1, 2}:
+        if self.verbose_level in (1, 2):
             error_label = get_error_label(self.check_result)
             first_check = self.check_sequence[1]
             database_name = get_check_indexed_detail_value(

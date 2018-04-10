@@ -104,40 +104,68 @@ class CustomerInfluxDBCheck(CustomerInfluxDBData):
         self.analyze_check_results()
 
     def __repr__(self):
+
+        def get_check_indexed_value(check_to_index, check_key):
+            return check_to_index[self.check_sequence[0].index(
+                check_key)]
+
+        def get_check_indexed_detail_value(check_to_index,
+                                           check_detail_key=None):
+            if not check_detail_key:
+                return check_to_index[1][:]
+            else:
+                return check_to_index[1][self.check_sequence[0][1].index(
+                    check_detail_key)]
+
         print_message = ''
         if self.verbose_level in {1, 2}:
             error_label = get_error_label(self.check_result)
-            database_name = self.check_sequence[0][1][2]
+            first_check = self.check_sequence[1]
+            database_name = get_check_indexed_detail_value(
+                first_check, 'database_name')
             print_message += "{0}: {1} ".format(error_label, database_name)
             if error_label == 'OK':
                 print_message += "checks are healthy. Enjoy the hindu calm."
             else:
                 print_message += "checks have some troubles. Do something."
+            print_message += " | "
+            print_message += "'{0}'={1};1;2;; ".format(
+                database_name,
+                self.check_result)
         if self.verbose_level == 2:
             print_message += " | "
-            for check in self.check_sequence:
-                host_name = check[1][4]
-                test_name = check[1][5]
-                transaction_name = check[1][6]
+            for check in self.check_sequence[1:]:
+                host_name = get_check_indexed_detail_value(
+                    check, 'host_name')
+                test_name = get_check_indexed_detail_value(
+                    check, 'test_name')
+                transaction_name = get_check_indexed_detail_value(
+                    check, 'transaction_name')
+                check_result = get_check_indexed_value(
+                    check, 'check_result')
                 print_message += "'{0}_{1}_{2}'={3};1;2;; ".format(
                     host_name,
                     test_name,
                     transaction_name,
-                    self.check_result)
+                    check_result)
         if self.verbose_level >= 3:
             print_message += '\n'
             print_message += 'Check results:\n'
-            for check in self.check_sequence:
-                error_label = get_error_label(check[2])
-                check_name = check[0]
+            for check in self.check_sequence[1:]:
+                error_label = get_error_label(get_check_indexed_value(
+                    check, 'check_result'))
+                check_name = get_check_indexed_value(
+                    check, 'check_name')
                 print_message += '[ {0} '.format(error_label)
                 print_message += '| {0} '.format(check_name)
-                for feature in check[1]:
+                for feature in get_check_indexed_detail_value(check):
                     print_message += '| {0} '.format(feature)
                 print_message += ']\n'
         return print_message
 
     def get_check_sequence(self):
+        check_header = []
+        check_headed = False
         for database in self.databases:
             database_name = database['database']
             for measurement in database['measurements']:
@@ -163,13 +191,29 @@ class CustomerInfluxDBCheck(CustomerInfluxDBData):
                                     check_feature.append(check['measure_unit'])
                                     check_feature.append(check['sanity_period'])
                                 check_result = None
+                                if not check_headed:
+                                    check_header.append('check_name')
+                                    check_header.append([
+                                        'data_source_ip',
+                                        'data_source_port',
+                                        'database_name',
+                                        'measurement_name',
+                                        'host_name',
+                                        'test_name',
+                                        'transaction_name',
+                                        'feature_name',
+                                        'measure_unit',
+                                        'sanity_period'])
+                                    check_header.append('check_result')
+                                    self.check_sequence.append(check_header)
+                                    check_headed = True
                                 self.check_sequence.append([check_name,
                                                             check_feature,
                                                             check_result])
         return self.check_sequence
 
     def run_check_sequence(self):
-        for check in self.check_sequence:
+        for check in self.check_sequence[1:]:
             check_name = check[0]
             check_args = check[1]
             if check_name == 'check_feature_availability':
@@ -177,8 +221,8 @@ class CustomerInfluxDBCheck(CustomerInfluxDBData):
         return self.check_sequence
 
     def analyze_check_results(self):
-        max_check_result = max([check[2] for check in self.check_sequence])
-        min_check_result = min([check[2] for check in self.check_sequence])
+        max_check_result = max([check[2] for check in self.check_sequence[1:]])
+        min_check_result = min([check[2] for check in self.check_sequence[1:]])
         if max_check_result == error_level['UNKNOWN']:
             self.check_result = error_level['UNKNOWN']
         elif max_check_result == error_level['CRITICAL']:
@@ -194,7 +238,7 @@ class CustomerInfluxDBCheck(CustomerInfluxDBData):
         return True
 
 
-class CustomersInfluxDBChecks(CustomerInfluxDBCheck):
+class CustomersInfluxDBChecks:
     def __init__(self, json_path='', verbose_level=1):
         self.json_path = json_path
         self.verbose_level = verbose_level
@@ -389,7 +433,7 @@ def check_customers_influxdb_checks(verbose=1):
     print(csc)
 
 
-if __name__ == '__main__':
+def main():
     cli_args = sys.argv[1:]
     if cli_args:
         parser = argparse.ArgumentParser()
@@ -431,3 +475,7 @@ if __name__ == '__main__':
 
         # check_customer_influxdb_checks('<customer_name>')
         check_customers_influxdb_checks()
+
+
+if __name__ == '__main__':
+    main()

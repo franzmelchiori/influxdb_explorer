@@ -537,7 +537,7 @@ def set_check_map():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--json_path',
-                        help='set the json path of the customer check map')
+                        help='set the json path of the check map')
     parser.add_argument('-c', '--customer_name',
                         help='select a customer from where checking '
                              'influxdb data')

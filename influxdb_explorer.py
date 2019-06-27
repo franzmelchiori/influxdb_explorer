@@ -260,14 +260,14 @@ class CustomerInfluxDBCheck(CustomerInfluxDBData):
         max_check_result = max([check[2] for check in self.check_sequence[1:]])
         min_check_result = min([check[2] for check in self.check_sequence[1:]])
         if max_check_result == error_level['UNKNOWN']:
-            self.check_result = error_level['UNKNOWN']
+            self.check_result = error_level['CRITICAL']
         elif max_check_result == error_level['CRITICAL']:
             self.check_result = error_level['CRITICAL']
         elif max_check_result == error_level['OK']:
             if min_check_result == error_level['OK']:
                 self.check_result = error_level['OK']
         else:
-            self.check_result = error_level['UNKNOWN']
+            self.check_result = error_level['CRITICAL']
 
     def exit_check_result(self):
         exit(self.check_result)
@@ -548,7 +548,7 @@ def main():
     if cli_args:
         args = parser.parse_args()
         json_path = args.json_path if args.json_path else ''
-        customer_name = args.customer_name if args.json_path else False
+        customer_name = args.customer_name if args.customer_name else False
         verbose_level = int(args.verbose_level) if args.verbose_level else 1
         if customer_name:
             check_customer_influxdb_checks(customer_name,

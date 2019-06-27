@@ -2,7 +2,7 @@
 
 """
     InfluxDB data exploration and checking
-    Copyright (C) 2018 Francesco Melchiori
+    Copyright (C) 2019 Francesco Melchiori
     <https://www.francescomelchiori.com/>
 
     This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,43 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    along with this program.  If not, see
+    <http://www.gnu.org/licenses/>.
+
+    mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmddddmdmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmmmmmmmddhddy/:/+oomdmmmmmmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmmmmmms:/.:o:---..:+++syhdmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmmddyo:--`.-...```````-ssddmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmmmh/-`````````````````.ssdmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmdo+..```-+osoo/`.```````--hdmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmdh:-..``-oyhhhhy+..`````` `./hmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmy:--.`.ohhhhhhhyso/..``````.-hmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmy--:.``:hdhhhyysossso/--..-.`.:dmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmh/-.-.``ohh+:-.`.-/+++-``.:+o``.dmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmm/....``/hy:.-.``-/oys/-```..o.`-mmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmm-...``/hho:/:..`-oyhhs.```.-+-`-mmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmms.````shhyyso++syhhhys+:--::o/`:mmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmms::``ohhhhhhysoos/-/::+++++o+`+mmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmd//+.:yhhyso//+s+:--..::/+oo/:dmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmd/s/y/syso+:::+/::----:::/+o-:mmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmdssysyyo//::--://---..--:/o:ymmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmds//yso/////++:-..---.://oymmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmd/`ss++/+++++/:-..---//ommmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmmy+s+///++/:--..--://:smmmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmdy/-+s++///:--------../hmmmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmdhsss:::oo///::----..``/hhhdmmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmdhssso-:/+/+++:---..``.yhyyhmmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmdyss+:-/////:--...../hyyyydmmmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmdy+--////::---....shyyyhhddmmmmmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmmdhs::::::::----/syyyshyyhhhhddmmmmmmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmmdddhy:::::::---/yyyyssyyyyyyhhhdddddmmmmmmmmmmmmm
+    mmmmmmmmmmmmmmmmmmdddhhyyo/-----::yysosyyyyyhhhhhhhhddddddddmmmmmmmm
+    mmmmmmmmdddddddddddddddhhhhy:./oysooosssssssssyyyyyyyyyyhyyhhdddddmm
+    mmmddddddddhhhhhhhhhhhhhhhhhyssooooosssyyyyyhhhhhhhhhhhddhhhhhhysssd
+    mdddddddddddddddddddddddddhyyyyyyyyhhhhhhhhhhhhdddddddhhhhhhyhyssssy
+    ddddddddddddddddddddddddddhhhhhhhhhhhhhhhhhyyyyyyyhhhhhhhhyyhysosssy
 """
 
 import sys
@@ -51,7 +87,7 @@ class CustomerData:
 
     def load_check_map_json(self):
         if not self.json_path:
-            self.json_path = 'customer_check_map.json'
+            self.json_path = 'check_map.json'
             # self.json_path = '{0}_check_map.json'.format(self.customer_name)
         check_map = load_json(self.json_path)
         for customer_data in check_map['customers']:
@@ -255,7 +291,7 @@ class CustomersInfluxDBChecks:
 
     def load_customer_names(self):
         if not self.json_path:
-            self.json_path = 'customer_check_map.json'
+            self.json_path = 'check_map.json'
         check_map = load_json(self.json_path)
         for customer_data in check_map['customers']:
             self.customer_names.append(customer_data['customer_name'])
@@ -267,6 +303,7 @@ class CustomersInfluxDBChecks:
     def run_customers_checks(self):
         for customer in self.customer_names:
             cc = CustomerInfluxDBCheck(customer_name=customer,
+                                       json_path=self.json_path,
                                        verbose_level=self.verbose_level)
             self.customers_checks.append(cc)
 
@@ -428,30 +465,98 @@ def check_customer_influxdb_checks(customer, json_path='', verbose=1):
     cc.exit_check_result()
 
 
-def check_customers_influxdb_checks(verbose=1):
-    csc = CustomersInfluxDBChecks(verbose_level=verbose)
+def check_customers_influxdb_checks(json_path='', verbose=1):
+    csc = CustomersInfluxDBChecks(json_path=json_path,
+                                  verbose_level=verbose)
     print(csc)
 
 
+def set_check_map():
+    check_map_template = """{
+    "customers": [
+        {
+            "customer_name": "<customer_name>",
+            "data_sources": [
+                {
+                    "data_source_name": "influxdb",
+                    "data_source_ip_port": "<xxx.xxx.xxx.xxx:xxxx>",
+                    "databases": [
+                        {
+                            "database": "<database_name>",
+                            "measurements": [
+                                {
+                                    "measurement": "alyvix",
+                                    "hosts": [
+                                        {
+                                            "host": "<host_name>",
+                                            "tests": [
+                                                {
+                                                    "test_name": "<test_name>",
+                                                    "transactions": [
+                                                        {
+                                                            "transaction_name": "<transaction_name>",
+                                                            "checks": [
+                                                                {
+                                                                    "check_name": "check_feature_availability",
+                                                                    "feature_name": "state",
+                                                                    "measure_unit": "minutes",
+                                                                    "sanity_period": 60
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}"""
+    print_message = '\n'
+    print_message += 'CheckOfChecks\n'
+    print_message += '-------------\n\n'
+    file_touched = False
+    if not os.path.isfile('check_map.json'):
+        check_map_file = open('check_map.json', 'w')
+        check_map_file.write(check_map_template)
+        check_map_file.close()
+        print_message += "'check_map.json' template is SAVED now.\n\n"
+        file_touched = True
+    print_message += "1. SET 'check_map.json'.\n"
+    print_message += "2. RUN the CheckOfChecks using its arguments.\n"
+    print(print_message)
+    return file_touched
+
+
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--json_path',
+                        help='set the json path of the customer check map')
+    parser.add_argument('-c', '--customer_name',
+                        help='select a customer from where checking '
+                             'influxdb data')
+    parser.add_argument('-v', '--verbose_level',
+                        help='verbose the check output')
+
     cli_args = sys.argv[1:]
     if cli_args:
-        parser = argparse.ArgumentParser()
-        parser.add_argument('-p', '--json_path',
-                            help='set the json path of the customer check map')
-        parser.add_argument('-c', '--customer_name',
-                            help='select a customer from where checking '
-                                 'influxdb data')
-        parser.add_argument('-v', '--verbose_level',
-                            help='verbose the check output')
         args = parser.parse_args()
-        customer_name = args.customer_name
         json_path = args.json_path if args.json_path else ''
+        customer_name = args.customer_name if args.json_path else False
         verbose_level = int(args.verbose_level) if args.verbose_level else 1
         if customer_name:
             check_customer_influxdb_checks(customer_name,
                                            json_path,
                                            verbose_level)
+        else:
+            check_customers_influxdb_checks(json_path,
+                                            verbose_level)
     else:
         # print(CustomerData('<customer_name>'))
         # print(CustomerInfluxDBData('<customer_name>'))
@@ -474,7 +579,10 @@ def main():
         #                            sanity_period=<sanity_period>)
 
         # check_customer_influxdb_checks('<customer_name>')
-        check_customers_influxdb_checks()
+        # check_customers_influxdb_checks()
+
+        set_check_map()
+        parser.print_help()
 
 
 if __name__ == '__main__':
